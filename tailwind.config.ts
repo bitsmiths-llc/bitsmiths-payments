@@ -43,12 +43,11 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
+        brand: {
+          '500': '#04CD77',
+        },
+        neutral: {
+          b3: '#B3B3B3',
         },
       },
       borderRadius: {
@@ -79,8 +78,8 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
       fontFamily: {
-        geist: 'var(--font-geist-sans)',
-        mono: 'var(--font-geist-mono)',
+        primary: ['var(--font-mulish)'],
+        clash: ['var(--font-clash-grotesk)'],
       },
     },
   },

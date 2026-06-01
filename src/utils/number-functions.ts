@@ -1,13 +1,11 @@
-import { appConfig } from '@/config/app';
-
 export const formatCurrency = (
   amount?: number | null,
   decimalPlaces?: number,
 ) => {
   if (!amount) return '';
-  return new Intl.NumberFormat(appConfig.defaultLocale, {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: appConfig.defaultCurrency,
+    currency: 'USD',
     minimumFractionDigits: decimalPlaces ?? 0,
     maximumFractionDigits: decimalPlaces ?? 0,
   }).format(amount);
@@ -18,7 +16,7 @@ export const formatNumber = (
   decimalPlaces?: number,
 ): string => {
   if (!num) return '';
-  return num.toLocaleString(appConfig.defaultLocale, {
+  return num.toLocaleString('en-US', {
     minimumFractionDigits: decimalPlaces ?? 0,
     maximumFractionDigits: decimalPlaces ?? 0,
   });

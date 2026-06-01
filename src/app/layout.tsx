@@ -1,27 +1,29 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import { Toaster } from 'sonner';
+import localFont from 'next/font/local';
+import { Mulish } from 'next/font/google';
 
 import './globals.css';
 
-import PosthogAnalytics from '@/components/posthog/analytics';
-
-import getMetadata from '@/config/app';
-
 import AppProviders from './providers';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const mulish = Mulish({
   subsets: ['latin'],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-mulish',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+const clashGrotesk = localFont({
+  src: '../../public/fonts/ClashGrotesk-Semibold.ttf',
+  variable: '--font-clash-grotesk',
+  display: 'swap',
 });
 
-export const metadata: Metadata = getMetadata();
+export const metadata: Metadata = {
+  title: 'Bitsmiths Payments',
+  description: 'Secure payment portal for Bitsmiths clients.',
+  robots: { index: false, follow: false },
+};
 
 export default function RootLayout({
   children,
@@ -30,14 +32,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='en'>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} font-geist`}
-      >
-        <AppProviders>
-          <PosthogAnalytics />
-          <Toaster richColors />
-          {children}
-        </AppProviders>
+      <body className={`${mulish.variable} ${clashGrotesk.variable} bg-black`}>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
