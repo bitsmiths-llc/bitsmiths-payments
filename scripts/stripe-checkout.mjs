@@ -82,37 +82,54 @@ async function createCustomer() {
   return customer;
 }
 
+async function collectLineItems() {
+  const items = [];
+
+  while (true) {
+    const description = await input({
+      message: `Line item ${items.length + 1} — description:`,
+      validate: (v) => v.trim() ? true : "Required",
+    });
+
+    const amountStr = await input({
+      message: `Line item ${items.length + 1} — amount (USD):`,
+      validate: (v) => {
+        const n = parseFloat(v);
+        return (!isNaN(n) && n > 0) ? true : "Enter a valid amount e.g. 1500 or 49.99";
+      },
+    });
+
+    items.push({
+      description: description.trim(),
+      amount: Math.round(parseFloat(amountStr) * 100),
+    });
+
+    const addMore = await confirm({ message: "Add another line item?" });
+    if (!addMore) break;
+  }
+
+  return items;
+}
+
 async function main() {
   const customer = await pickOrCreateCustomer();
   console.log(`\n  Customer: ${customer.name}\n`);
 
-  const description = await input({
-    message: "Invoice description:",
-    validate: (v) => v.trim() ? true : "Required",
-  });
+  const items = await collectLineItems();
 
-  const amountStr = await input({
-    message: "Amount (USD):",
-    validate: (v) => {
-      const n = parseFloat(v);
-      return (!isNaN(n) && n > 0) ? true : "Enter a valid amount e.g. 1500 or 1941.70";
-    },
-  });
-
-  const amount = Math.round(parseFloat(amountStr) * 100);
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  console.log("\n  Summary:");
+  items.forEach((i) => console.log(`    • ${i.description}: $${(i.amount / 100).toFixed(2)}`));
+  console.log(`    ─────────────────────────────`);
+  console.log(`    Total: $${(total / 100).toFixed(2)}\n`);
 
   const ok = await confirm({
-    message: `Create $${(amount / 100).toFixed(2)} payment link for ${customer.name}?`,
+    message: `Create payment link for ${customer.name}?`,
   });
   if (!ok) { console.log("\n  Cancelled.\n"); process.exit(0); }
 
   const token = jwt.sign(
-    {
-      customerId:   customer.id,
-      customerName: customer.name,
-      amount,
-      description:  description.trim(),
-    },
+    { customerId: customer.id, customerName: customer.name, items },
     secret,
     // no expiry — link is permanent
   );

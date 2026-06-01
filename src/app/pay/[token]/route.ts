@@ -25,16 +25,14 @@ export async function GET(
     const session = await stripe.checkout.sessions.create({
       customer: payload.customerId,
       mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: { name: payload.description },
-            unit_amount: payload.amount,
-          },
-          quantity: 1,
+      line_items: payload.items.map((item) => ({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: item.description },
+          unit_amount: item.amount,
         },
-      ],
+        quantity: 1,
+      })),
       success_url: `${appUrl}/thank-you?name=${encodeURIComponent(payload.customerName)}`,
       cancel_url: `${appUrl}/payment-failed`,
     });

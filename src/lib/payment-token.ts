@@ -1,10 +1,14 @@
 import jwt from 'jsonwebtoken';
 
+export type LineItem = {
+  description: string;
+  amount: number; // in cents
+};
+
 export type PaymentPayload = {
   customerId: string;
   customerName: string;
-  amount: number;
-  description: string;
+  items: LineItem[];
 };
 
 export function signPaymentToken(payload: PaymentPayload, secret: string): string {
