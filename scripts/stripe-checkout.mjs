@@ -160,7 +160,7 @@ async function insertPaymentLink(row) {
       return created.slug;
     } catch (err) {
       // 23505 = unique_violation (slug collision) → try a fresh slug.
-      if (err.code !== "23505") throw new Error(err.message);
+      if (err.code !== "23505") throw err; // preserve code/detail for the handler
     }
   }
   throw new Error("Could not generate a unique slug after several attempts");
@@ -206,7 +206,11 @@ async function main() {
 main()
   .then(() => sql.end({ timeout: 5 }))
   .catch(async (err) => {
-    console.error(`\n❌  ${err.message}\n`);
+    const parts = [err?.message, err?.code && `[${err.code}]`, err?.detail].filter(Boolean);
+    console.error(`\n❌  ${parts.join(" ") || err}\n`);
+    if (["ECONNREFUSED", "ETIMEDOUT", "CONNECTION_CLOSED", "CONNECT_TIMEOUT"].includes(err?.code)) {
+      console.error("   Is the DB tunnel up?  ssh -fNT -L 6543:10.0.1.8:5432 hetzner-coolify\n");
+    }
     await sql.end({ timeout: 5 }).catch(() => {});
     process.exit(1);
   });

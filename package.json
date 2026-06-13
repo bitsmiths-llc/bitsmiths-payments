@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "checkout": "node scripts/stripe-checkout.mjs",
+    "checkout": "bash scripts/db-tunnel.sh",
+    "checkout:notunnel": "node scripts/stripe-checkout.mjs",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
