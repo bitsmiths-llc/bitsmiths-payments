@@ -86,9 +86,13 @@ async function collectLineItems() {
   const items = [];
 
   while (true) {
-    const description = await input({
-      message: `Line item ${items.length + 1} — description:`,
+    const name = await input({
+      message: `Line item ${items.length + 1} — name:`,
       validate: (v) => v.trim() ? true : "Required",
+    });
+
+    const description = await input({
+      message: `Line item ${items.length + 1} — description (optional):`,
     });
 
     const amountStr = await input({
@@ -100,7 +104,8 @@ async function collectLineItems() {
     });
 
     items.push({
-      description: description.trim(),
+      name: name.trim(),
+      description: description.trim() || undefined,
       amount: Math.round(parseFloat(amountStr) * 100),
     });
 
@@ -119,7 +124,11 @@ async function main() {
 
   const total = items.reduce((s, i) => s + i.amount, 0);
   console.log("\n  Summary:");
-  items.forEach((i) => console.log(`    • ${i.description}: $${(i.amount / 100).toFixed(2)}`));
+  items.forEach((i) =>
+    console.log(
+      `    • ${i.name}${i.description ? ` — ${i.description}` : ""}: $${(i.amount / 100).toFixed(2)}`,
+    ),
+  );
   console.log(`    ─────────────────────────────`);
   console.log(`    Total: $${(total / 100).toFixed(2)}\n`);
 

@@ -28,7 +28,13 @@ export async function GET(
       line_items: payload.items.map((item) => ({
         price_data: {
           currency: 'usd',
-          product_data: { name: item.description },
+          product_data: {
+            // Legacy tokens stored the label in `description`; new ones use `name`.
+            name: item.name ?? item.description!,
+            ...(item.name && item.description
+              ? { description: item.description }
+              : {}),
+          },
           unit_amount: item.amount,
         },
         quantity: 1,

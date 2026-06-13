@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 
 export type LineItem = {
-  description: string;
+  name: string;
+  description?: string;
   amount: number; // in cents
 };
 
