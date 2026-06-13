@@ -1,30 +1,26 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
-import { verifyPaymentToken } from '@/lib/payment-token';
+import {
+  formatAmount,
+  getPaymentLink,
+  lineItemLabel,
+  totalAmount,
+} from '@/lib/payment-links';
 
-// Needs the Node runtime: token verification uses `jsonwebtoken` (node crypto).
 export const runtime = 'nodejs';
 
 const BRAND = '#04CD77';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ token: string }> },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { token } = await params;
-  const secret = process.env.PAYMENT_SECRET;
-  const payload = secret ? verifyPaymentToken(token, secret) : null;
+  const { slug } = await params;
+  const link = await getPaymentLink(slug);
 
-  const total = payload?.items.reduce((sum, item) => sum + item.amount, 0) ?? 0;
-  const amount = (total / 100).toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  });
-
-  const rawLabel =
-    payload?.items.map((item) => item.name ?? item.description).join(', ') ??
-    'Secure payment';
+  const amount = link ? formatAmount(totalAmount(link), link.currency) : '';
+  const rawLabel = link ? lineItemLabel(link) : 'Secure payment';
   const itemLabel =
     rawLabel.length > 90 ? `${rawLabel.slice(0, 87)}…` : rawLabel;
 

@@ -11,8 +11,7 @@
     "ui": "pnpm dlx shadcn@latest add",
     "lint": "next lint --fix",
     "format": "prettier --write .",
-    "style": "pnpm lint && pnpm format",
-    "supa:types": "supabase gen types --lang=typescript --project-id '<supabase-project-id>' --schema public > ./src/types/supabase.ts"
+    "style": "pnpm lint && pnpm format"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -28,8 +27,6 @@
     "@radix-ui/react-separator": "^1.1.6",
     "@radix-ui/react-slot": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.2.6",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
     "@t3-oss/env-nextjs": "^0.13.4",
     "@tanstack/react-query": "^5.76.1",
     "@tanstack/react-query-devtools": "^5.76.1",
@@ -44,6 +41,7 @@
     "next": "15.3.6",
     "next-safe-action": "^7.10.8",
     "next-themes": "^0.4.6",
+    "postgres": "^3.4.5",
     "posthog-js": "^1.242.2",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

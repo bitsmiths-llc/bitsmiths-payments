@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { input, select, confirm } from "@inquirer/prompts";
-import Stripe from "stripe";
-import jwt from "jsonwebtoken";
+import { confirm,input, select } from "@inquirer/prompts";
+import { randomBytes } from "crypto";
 import dotenv from "dotenv";
-import { resolve, dirname } from "path";
+import { dirname,resolve } from "path";
+import postgres from "postgres";
+import Stripe from "stripe";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -12,15 +13,27 @@ dotenv.config({ path: resolve(__dirname, "../.env.local") });
 const key = process.env.STRIPE_SECRET_KEY;
 if (!key) { console.error("❌  STRIPE_SECRET_KEY not found in .env.local"); process.exit(1); }
 
-const secret = process.env.PAYMENT_SECRET;
-if (!secret) { console.error("❌  PAYMENT_SECRET not found in .env.local"); process.exit(1); }
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error("❌  DATABASE_URL not found in .env.local");
+  process.exit(1);
+}
 
 const appUrl = process.env.PAYMENTS_APP_URL ?? "https://payments.bitsmiths.studio";
 
 const stripe = new Stripe(key);
+const sql = postgres(databaseUrl, { max: 2 });
 const isLive = key.startsWith("sk_live");
 
 console.log(`\n💳  Bitsmiths Payment Link Generator  [${isLive ? "🟢 LIVE" : "🟡 TEST"}]\n`);
+
+const SLUG_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function slugId(len = 12) {
+  const bytes = randomBytes(len);
+  let s = "";
+  for (let i = 0; i < len; i++) s += SLUG_ALPHABET[bytes[i] % SLUG_ALPHABET.length];
+  return s;
+}
 
 async function getAllCustomers() {
   const all = [];
@@ -116,11 +129,49 @@ async function collectLineItems() {
   return items;
 }
 
+async function askExpiry() {
+  const daysStr = await input({
+    message: "Expire link after how many days? (blank = never):",
+    validate: (v) => {
+      if (!v.trim()) return true;
+      const n = Number(v);
+      return Number.isInteger(n) && n > 0 ? true : "Enter a whole number of days, or leave blank";
+    },
+  });
+  if (!daysStr.trim()) return null;
+  const ms = Number(daysStr) * 24 * 60 * 60 * 1000;
+  return new Date(Date.now() + ms).toISOString();
+}
+
+async function insertPaymentLink(row) {
+  // Retry a couple of times in the (very unlikely) event of a slug collision.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const slug = slugId();
+    try {
+      const [created] = await sql`
+        insert into payment_links
+          (slug, customer_id, customer_name, customer_email,
+           line_items, currency, status, expires_at)
+        values
+          (${slug}, ${row.customer_id}, ${row.customer_name}, ${row.customer_email},
+           ${sql.json(row.line_items)}, ${row.currency}, ${row.status}, ${row.expires_at})
+        returning slug
+      `;
+      return created.slug;
+    } catch (err) {
+      // 23505 = unique_violation (slug collision) → try a fresh slug.
+      if (err.code !== "23505") throw new Error(err.message);
+    }
+  }
+  throw new Error("Could not generate a unique slug after several attempts");
+}
+
 async function main() {
   const customer = await pickOrCreateCustomer();
   console.log(`\n  Customer: ${customer.name}\n`);
 
   const items = await collectLineItems();
+  const expiresAt = await askExpiry();
 
   const total = items.reduce((s, i) => s + i.amount, 0);
   console.log("\n  Summary:");
@@ -130,24 +181,32 @@ async function main() {
     ),
   );
   console.log(`    ─────────────────────────────`);
-  console.log(`    Total: $${(total / 100).toFixed(2)}\n`);
+  console.log(`    Total: $${(total / 100).toFixed(2)}`);
+  console.log(`    Expires: ${expiresAt ? new Date(expiresAt).toLocaleString() : "never"}\n`);
 
   const ok = await confirm({
     message: `Create payment link for ${customer.name}?`,
   });
   if (!ok) { console.log("\n  Cancelled.\n"); process.exit(0); }
 
-  const token = jwt.sign(
-    { customerId: customer.id, customerName: customer.name, items },
-    secret,
-    // no expiry — link is permanent
-  );
+  const slug = await insertPaymentLink({
+    customer_id: customer.id,
+    customer_name: customer.name,
+    customer_email: customer.email ?? null,
+    line_items: items,
+    currency: "usd",
+    status: "active",
+    expires_at: expiresAt,
+  });
 
-  const url = `${appUrl}/pay/${token}`;
-  console.log(`\n✅  Payment link (permanent):\n\n   ${url}\n`);
+  const url = `${appUrl}/pay/${slug}`;
+  console.log(`\n✅  Payment link:\n\n   ${url}\n`);
 }
 
-main().catch((err) => {
-  console.error(`\n❌  ${err.message}\n`);
-  process.exit(1);
-});
+main()
+  .then(() => sql.end({ timeout: 5 }))
+  .catch(async (err) => {
+    console.error(`\n❌  ${err.message}\n`);
+    await sql.end({ timeout: 5 }).catch(() => {});
+    process.exit(1);
+  });

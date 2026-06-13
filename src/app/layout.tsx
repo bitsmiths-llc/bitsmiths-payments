@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
 import { Mulish } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import './globals.css';
 
@@ -20,6 +20,9 @@ const clashGrotesk = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://payments.bitsmiths.studio',
+  ),
   title: 'Bitsmiths Payments',
   description: 'Secure payment portal for Bitsmiths clients.',
   robots: { index: false, follow: false },
